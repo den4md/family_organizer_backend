@@ -26,9 +26,11 @@ class BaseView:
         self.request = None
         self.dict = {}  # Helping dict to store special vars
 
-    # noinspection PyMethodFirstArgAssignment
+    @classmethod
+    def as_view(cls, request: HttpRequest):
+        return cls().request_handle(request)
+
     def request_handle(self, request: HttpRequest):
-        self = type(self)()
         self.request = request
         try:
             self.transmit_handle()

@@ -11,4 +11,4 @@ class Group(models.Model):
                                      related_name='+')
     user_member_list = models.ManyToManyField(to=settings.AUTH_USER_MODEL, related_name='group_list')
     image_file = models.ForeignKey(to='File', on_delete=models.SET_NULL, null=True, related_name='+')
-    # TODO Add thumbnail
+    image_file_thumb = models.TextField(null=True)

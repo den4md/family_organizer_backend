@@ -2,6 +2,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+# TODO Add blank to all null values for all models
+# TODO Reformat all models files
+
 
 class BaseTask(models.Model):
     class Meta:

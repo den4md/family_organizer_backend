@@ -3,11 +3,12 @@ from typing import Optional
 
 from django.db import IntegrityError
 
-from api.serializers_dir import user_app_serializer
+from api.serializers_dir import user_serializers
 from api.views_dir import base_view
 
 
 class SignUpView(base_view.BaseView):
+
     def no_image_file_id(self) -> Optional[SignUpView]:
         if 'image_file_id' not in self.dict['body_json'].keys():
             return self
@@ -27,21 +28,20 @@ class SignUpView(base_view.BaseView):
             self.status_code = 201
             return self
 
-    def handle_post(self):
-        self.no_image_file_id()\
+    def handle_post(self) -> Optional[SignUpView]:
+        return self.no_image_file_id() \
             .create_new_user()
 
-    def view_post(self):
-        self.no_authorize()\
-            .deserialize_json_body()\
-            .body_match_serializer(user_app_serializer.UserAppSerializer)\
-            .deserializer_validation(user_app_serializer.UserAppSerializer)\
-            .specific_handlers['POST'](self)
+    def chain_post(self):
+        self.no_authorize() \
+            .deserialize_json_body() \
+            .body_match_serializer(user_serializers.UserAppSerializer) \
+            .deserializer_validation(user_serializers.UserAppSerializer) \
+            .request_handlers['POST']['specific'](self)
 
-    specific_handlers = {
-        'POST': handle_post
-    }
-
-    method_handlers = {
-        'POST': view_post
+    request_handlers = {
+        'POST': {
+            'chain': chain_post,
+            'specific': handle_post
+        }
     }

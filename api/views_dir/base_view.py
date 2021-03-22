@@ -1,7 +1,8 @@
 from __future__ import annotations
 import json
+import string
 import traceback
-from typing import Optional, Type, List
+from typing import Optional, Type, List, Any
 
 from django.core import exceptions
 from django.db import models
@@ -12,8 +13,7 @@ from api.serializers_dir import base_serializer
 
 
 class BaseView:
-    method_handlers = {}
-    specific_handlers = {}
+    request_handlers = {}
 
     def __init__(self):
         if type(self) == BaseView:
@@ -27,10 +27,10 @@ class BaseView:
         self.dict = {}  # Helping dict to store special vars
 
     @classmethod
-    def as_view(cls, request: HttpRequest):
+    def as_view(cls, request: HttpRequest) -> HttpResponse:
         return cls().request_handle(request)
 
-    def request_handle(self, request: HttpRequest):
+    def request_handle(self, request: HttpRequest) -> HttpResponse:
         self.request = request
         try:
             self.transmit_handle()
@@ -44,13 +44,23 @@ class BaseView:
             return HttpResponse(json.dumps(self.response_dict), status=self.status_code)
 
     def transmit_handle(self):
-        if self.request.method in self.method_handlers.keys():
-            self.method_handlers[self.request.method](self)
+        if self.request.method in self.request_handlers.keys():
+            self.request_handlers[self.request.method]['chain'](self)
         else:
-            self.response_dict['result'] = f'Only ({", ".join(self.method_handlers.keys())})-method(-s) is permitted'
+            self.response_dict['result'] = f'Only ({", ".join(self.request_handlers.keys())})-method(-s) is permitted'
             self.status_code = 405
 
-    # Predefined chain elements
+    @classmethod
+    def validate(cls, obj: Any, validating_type):
+        if type(obj) != validating_type:
+            try:
+                validating_type(obj)
+            except ValueError:
+                return False
+        return True
+
+    # Predefined chain elements#
+    ############################
     def no_authorize(self) -> Optional[BaseView]:
         if self.request.user.is_authenticated:
             self.response_dict['result'] = 'You are already signed in'
@@ -82,20 +92,31 @@ class BaseView:
         else:
             return self
 
-    def body_match_serializer(self, serializer: Type[base_serializer.BaseSerializer]) -> Optional[BaseView]:
+    def body_match_serializer(self, serializer: Type[base_serializer.BaseAppSerializer], required: bool = True) -> \
+            Optional[BaseView]:
         for key in self.dict['body_json'].keys():
             if key not in serializer.Meta.possible_fields:
                 self.response_dict['result'] = f'Can\'t edit value for \'{str(key)}\''
                 self.status_code = 400
                 return None
-        for required_field in serializer.Meta.required_fields:
-            if required_field not in self.dict['body_json'].keys():
-                self.response_dict['result'] = f'Can\'t find value for \'{str(required_field)}\', but it\'s required'
-                self.status_code = 400
-                return None
+        if required:
+            for required_field in serializer.Meta.required_fields:
+                if required_field not in self.dict['body_json'].keys():
+                    self.response_dict[
+                        'result'] = f'Can\'t find value for \'{str(required_field)}\', but it\'s required'
+                    self.status_code = 400
+                    return None
         return self
 
-    def deserializer_validation(self, serializer: Type[base_serializer.BaseSerializer]) -> Optional[BaseView]:
+    # Doesn't save
+    def put_serializer(self, model: models.Model, serializer: Type[base_serializer.BaseAppSerializer]) -> \
+            Optional[BaseView]:
+        for key, value in self.dict['body_json'].items():
+            if key in serializer.Meta.fields:
+                setattr(model, key, value)
+        return self
+
+    def deserializer_validation(self, serializer: Type[base_serializer.BaseAppSerializer]) -> Optional[BaseView]:
         self.dict['serializer'] = serializer(data=self.dict['body_json'])
         try:
             self.dict['serializer'].is_valid(raise_exception=True)
@@ -105,9 +126,26 @@ class BaseView:
         else:
             return self
 
+    @staticmethod
+    def var_name_from_model(model: Type[models.Model]):
+        model_name = model.__name__
+        temp = []
+        while True:
+            found_upper = False
+            for i in range(1, len(model_name)):
+                if model_name[i] in string.ascii_uppercase:
+                    temp.append(model_name[:i].lower())
+                    model_name = model_name[i:]
+                    found_upper = True
+                    break
+            if not found_upper:
+                break
+        temp.append(model_name.lower())
+        return '_'.join(temp)
+
     def get_model_by_id(self, model: Type[models.Model], model_id) -> Optional[BaseView]:
         try:
-            self.dict[model.__name__.lower()] = model.objects.get(id=model_id)
+            self.dict[self.var_name_from_model(model)] = model.objects.get(id=model_id)
         except exceptions.ObjectDoesNotExist:
             self.response_dict['result'] = f'{model.__name__} does not exist'
             self.status_code = 400

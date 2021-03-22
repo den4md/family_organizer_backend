@@ -1,15 +1,35 @@
+from __future__ import annotations
+from typing import Optional
+
+from django.contrib import auth
+
 from api.views_dir import base_view
 
 
 class SignInView(base_view.BaseView):
 
-    def view_post(self):
-        self.no_authorize()
+    def __init__(self):
+        super().__init__()
+        self.url_parameters = ['email', 'password_hash']
 
-    # specific_handlers = {
-    #     'POST': handle_post
-    # }
+    def handle_post(self) -> Optional[SignInView]:
+        user = auth.authenticate(self.request, username=self.request.GET['email'],
+                                 password=self.request.GET['password_hash'])
+        if user is None:
+            self.response_dict['result'] = f'Wrong credentials'
+            self.status_code = 400
+        else:
+            auth.login(self.request, user)
+            return self
 
-    method_handlers = {
-        'POST': view_post
+    def chain_post(self):
+        self.no_authorize() \
+            .require_url_parameters(self.url_parameters) \
+            .request_handlers['POST']['specific'](self)
+
+    request_handlers = {
+        'POST': {
+            'chain': chain_post,
+            'specific': handle_post
+        }
     }

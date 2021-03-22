@@ -20,9 +20,11 @@ ALLOWED_HOSTS = [
 # User-defined settings
 
 AUTH_USER_MODEL = 'api.User'
-LOGIN_URL = 'error/unauthorized'
 INVITE_INTENT = 'app://family-organizer.com/'
 FILE_STORAGE = 'files/'
+TEMP_STORAGE = 'tmp/'
+IMAGE_MIN_SIZE = 300  # px
+IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico']
 
 
 # Application definition

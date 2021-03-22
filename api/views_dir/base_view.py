@@ -17,7 +17,7 @@ class BaseView:
 
     def __init__(self):
         if type(self) == BaseView:
-            raise TypeError('Can\'t initialize abstract class \'BaseView\'')
+            raise TypeError('Can\'t initialize abstract class "BaseView"')
 
         self.response_dict = {
             'result': 'Ok'
@@ -30,6 +30,10 @@ class BaseView:
     def as_view(cls, request: HttpRequest) -> HttpResponse:
         return cls().request_handle(request)
 
+    def error(self, error_message: str, status_code: int = 400) -> None:
+        self.response_dict['result'] = error_message
+        self.status_code = status_code
+
     def request_handle(self, request: HttpRequest) -> HttpResponse:
         self.request = request
         try:
@@ -37,8 +41,8 @@ class BaseView:
         except AttributeError:
             pass  # This error means that chain of responsibility was interrupted
         except Exception as e:
-            self.response_dict = {'result': f'Unexpected error: {str(e)}'}
-            self.status_code = 500
+            self.response_dict = {}
+            self.error(f'Unexpected error: {str(e)}', 500)
             print(traceback.print_exc())
         finally:
             return HttpResponse(json.dumps(self.response_dict), status=self.status_code)
@@ -47,48 +51,33 @@ class BaseView:
         if self.request.method in self.request_handlers.keys():
             self.request_handlers[self.request.method]['chain'](self)
         else:
-            self.response_dict['result'] = f'Only ({", ".join(self.request_handlers.keys())})-method(-s) is permitted'
-            self.status_code = 405
-
-    @classmethod
-    def validate(cls, obj: Any, validating_type):
-        if type(obj) != validating_type:
-            try:
-                validating_type(obj)
-            except ValueError:
-                return False
-        return True
+            self.error(f'Only ({", ".join(self.request_handlers.keys())})-method(-s) is permitted', 405)
 
     # Predefined chain elements#
     ############################
     def no_authorize(self) -> Optional[BaseView]:
         if self.request.user.is_authenticated:
-            self.response_dict['result'] = 'You are already signed in'
-            self.status_code = 400
+            return self.error('You are already signed in')
         else:
             return self
 
     def authorize(self) -> Optional[BaseView]:
         if not self.request.user.is_authenticated:
-            self.response_dict['result'] = 'You should sign in first'
-            self.status_code = 401
+            return self.error('You should sign in first', 401)
         else:
             return self
 
     def require_url_parameters(self, parameters: List[str]) -> Optional[BaseView]:
         for parameter in parameters:
             if parameter not in self.request.GET.keys():
-                self.response_dict['result'] = f'Can\'t find {parameter} in url parameters'
-                self.status_code = 400
-                return None
+                return self.error(f'Can\'t find {parameter} in url parameters')
         return self
 
     def deserialize_json_body(self) -> Optional[BaseView]:
         try:
             self.dict['body_json'] = json.loads(self.request.body.decode('utf8'))
         except json.JSONDecodeError as e:
-            self.response_dict['result'] = f'Error while deserializing: \n{str(e)}'
-            self.status_code = 400
+            return self.error(f'Error while deserializing: \n{str(e)}')
         else:
             return self
 
@@ -96,16 +85,11 @@ class BaseView:
             Optional[BaseView]:
         for key in self.dict['body_json'].keys():
             if key not in serializer.Meta.possible_fields:
-                self.response_dict['result'] = f'Can\'t edit value for \'{str(key)}\''
-                self.status_code = 400
-                return None
+                return self.error(f'Can\'t edit value for "{str(key)}"')
         if required:
             for required_field in serializer.Meta.required_fields:
                 if required_field not in self.dict['body_json'].keys():
-                    self.response_dict[
-                        'result'] = f'Can\'t find value for \'{str(required_field)}\', but it\'s required'
-                    self.status_code = 400
-                    return None
+                    return self.error(f'Can\'t find value for "{str(required_field)}", but it\'s required')
         return self
 
     # Doesn't save
@@ -121,8 +105,7 @@ class BaseView:
         try:
             self.dict['serializer'].is_valid(raise_exception=True)
         except ValidationError as e:
-            self.response_dict['result'] = f'Error while validating object: {str(e)}'
-            self.status_code = 400
+            return self.error(f'Error while validating object: {str(e)}')
         else:
             return self
 
@@ -143,21 +126,18 @@ class BaseView:
         temp.append(model_name.lower())
         return '_'.join(temp)
 
-    def get_model_by_id(self, model: Type[models.Model], model_id) -> Optional[BaseView]:
+    def get_model_by_id(self, model: Type[models.Model], model_id: int) -> Optional[BaseView]:
         try:
             self.dict[self.var_name_from_model(model)] = model.objects.get(id=model_id)
         except exceptions.ObjectDoesNotExist:
-            self.response_dict['result'] = f'{model.__name__} does not exist'
-            self.status_code = 400
+            return self.error(f'{model.__name__} with id "{model_id}" does not exist')
         except ValueError as e:
-            self.response_dict['result'] = f'Wrong parameter type: \n{str(e)}'
-            self.status_code = 400
+            return self.error(f'Wrong parameter type: \n{str(e)}')
         else:
             return self
 
     def user_belong_to_group(self) -> Optional[BaseView]:
         if self.request.user not in self.dict['group'].user_member_list.all():
-            self.response_dict['result'] = f'You don\'t belong to this group'
-            self.status_code = 403
+            return self.error(f'You don\'t belong to this group', 403)
         else:
             return self

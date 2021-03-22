@@ -19,8 +19,7 @@ class PasswordChangeView(base_view.BaseView):
             auth.login(self.request, self.request.user)
             return self
         else:
-            self.response_dict['result'] = f'Wrong current password'
-            self.status_code = 400
+            return self.error(f'Wrong current password')
 
     # noinspection PyArgumentList
     def chain_put(self):

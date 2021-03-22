@@ -16,8 +16,7 @@ class SignInView(base_view.BaseView):
         user = auth.authenticate(self.request, username=self.request.GET['email'],
                                  password=self.request.GET['password_hash'])
         if user is None:
-            self.response_dict['result'] = f'Wrong credentials'
-            self.status_code = 400
+            return self.error(f'Wrong credentials')
         else:
             auth.login(self.request, user)
             return self

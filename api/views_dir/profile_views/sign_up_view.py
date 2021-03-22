@@ -13,8 +13,7 @@ class SignUpView(base_view.BaseView):
         if 'image_file_id' not in self.dict['body_json'].keys():
             return self
         else:
-            self.response_dict['result'] = f'Image for registration is forbidden'
-            self.status_code = 400
+            return self.error(f'Image for registration is forbidden')
 
     def create_new_user(self) -> Optional[SignUpView]:
         try:
@@ -22,8 +21,7 @@ class SignUpView(base_view.BaseView):
             instance.set_password(self.dict['body_json']['password_hash'])
             instance.save()
         except IntegrityError:
-            self.response_dict['result'] = f'This email is already in use'
-            self.status_code = 400
+            return self.error(f'This email is already in use')
         else:
             self.status_code = 201
             return self

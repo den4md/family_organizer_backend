@@ -12,4 +12,4 @@ class File(models.Model):
                                       related_name='file_list')
     # filepath without ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
     file_path = models.CharField(max_length=100, unique=True)
-    group = models.ForeignKey(to='Group', null=True, on_delete=models.CASCADE, related_name='file_list')
+    group = models.ForeignKey(to='Group', null=True, on_delete=models.CASCADE, related_name='file_list', blank=True)

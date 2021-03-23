@@ -33,8 +33,8 @@ class SignUpView(base_view.BaseView):
     def chain_post(self):
         self.no_authorize() \
             .deserialize_json_body() \
-            .body_match_serializer(user_serializers.UserAppSerializer) \
-            .deserializer_validation(user_serializers.UserAppSerializer) \
+            .body_match_app_serializer(user_serializers.UserAppSerializer) \
+            .app_serializer_validation(user_serializers.UserAppSerializer) \
             .request_handlers['POST']['specific'](self)
 
     request_handlers = {

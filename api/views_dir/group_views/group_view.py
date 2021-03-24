@@ -50,7 +50,8 @@ class GroupView(base_view.BaseView):
             return self.error(f'Wrong type of "image_file_id". Expected - "int", '
                               f'got - "{type(self.dict["body_json"]["image_file_id"])}"')
         if self.dict['body_json']['image_file_id']:
-            self.get_model_by_id(file.File, self.dict['body_json']['image_file_id'])
+            if not self.get_model_by_id(file.File, self.dict['body_json']['image_file_id']):
+                return
         else:
             self.dict['file'] = None
             return self

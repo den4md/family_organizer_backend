@@ -46,6 +46,8 @@ class BaseView:
             self.error(f'Unexpected error: {str(e)}', 500)
             print(traceback.print_exc())
         finally:
+            if self.status_code >= 400:
+                print(self.response_dict['result'])
             return HttpResponse(json.dumps(self.response_dict), status=self.status_code)
 
     def transmit_handle(self):

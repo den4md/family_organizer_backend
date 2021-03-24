@@ -11,6 +11,7 @@ from family_organizer import settings
 
 
 class ProfileView(base_view.BaseView):
+    url_parameters = ['password_hash']
 
     def handle_put(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         try:
@@ -28,7 +29,8 @@ class ProfileView(base_view.BaseView):
             return self.error(f'Wrong type of "image_file_id". Expected - "int", '
                               f'got - "{type(self.dict["body_json"]["image_file_id"])}"')
         if self.dict['body_json']['image_file_id']:
-            self.get_model_by_id(file.File, self.dict['body_json']['image_file_id'])
+            if not self.get_model_by_id(file.File, self.dict['body_json']['image_file_id']):
+                return
         else:
             self.dict['file'] = None
 
@@ -98,7 +100,7 @@ class ProfileView(base_view.BaseView):
 
     def chain_delete(self: base_view.BaseView):
         self.authorize() \
-            .require_url_parameters(['password_hash']) \
+            .require_url_parameters(self.url_parameters) \
             .request_handlers['DELETE']['specific'](self)
 
     request_handlers = {

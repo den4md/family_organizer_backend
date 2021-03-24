@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional
 
 from django.core import exceptions
@@ -10,7 +9,7 @@ from api.views_dir import base_view
 class GroupJoinView(base_view.BaseView):
     url_parameters = ['invite_id']
 
-    def handle_post(self) -> Optional[GroupJoinView]:
+    def handle_post(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         try:
             self.dict['group'] = group.Group.objects.get(invite_id=self.request.GET['invite_id'])
         except exceptions.ObjectDoesNotExist:
@@ -42,7 +41,7 @@ class GroupJoinView(base_view.BaseView):
         self.response_dict['group_id'] = self.dict['group'].id
         return self
 
-    def chain_post(self):
+    def chain_post(self: base_view.BaseView):
         self.authorize() \
             .require_url_parameters(self.url_parameters) \
             .request_handlers['POST']['specific'](self)

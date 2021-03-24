@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional
 
 from django.db import IntegrityError
@@ -7,14 +6,13 @@ from api.helpers import validate_type, image_helper
 from api.models_dir import file
 from api.serializers_dir import user_serializers
 from api.views_dir import base_view
+from api.views_dir.group_views import group_leave_view
 from family_organizer import settings
 
 
 class ProfileView(base_view.BaseView):
-    # TODO Add profile DELETE
-    # When leaving from groups will be ready
 
-    def handle_put(self) -> Optional[ProfileView]:
+    def handle_put(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         try:
             if 'email' in self.dict['body_json'].keys():
                 self.request.user.username = self.dict['body_json']['email']
@@ -23,7 +21,7 @@ class ProfileView(base_view.BaseView):
             return self.error(f'This email is already in use')
         return self
 
-    def process_image_file(self) -> Optional[ProfileView]:
+    def process_image_file(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if 'image_file_id' not in self.dict['body_json'].keys():
             return self
         if not validate_type.validate_type(self.dict['body_json']['image_file_id'], int):
@@ -61,14 +59,14 @@ class ProfileView(base_view.BaseView):
             self.request.user.image_file_thumb = image_file_thumb
         return self
 
-    def no_password_hash(self) -> Optional[ProfileView]:
+    def no_password_hash(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if 'password_hash' not in self.dict['body_json'].keys():
             return self
         else:
             return self.error(f'Can\'t edit password. Use \'/password_change\' instead')
 
     # noinspection PyUnresolvedReferences
-    def chain_put(self):
+    def chain_put(self: base_view.BaseView):
         self.authorize() \
             .deserialize_json_body() \
             .body_match_app_serializer(user_serializers.UserAppSerializer, required=False) \
@@ -77,16 +75,31 @@ class ProfileView(base_view.BaseView):
             .process_image_file() \
             .request_handlers['PUT']['specific'](self)
 
-    def handle_get(self) -> Optional[ProfileView]:
+    def handle_get(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         serializer = user_serializers.UserServSerializer(self.request.user)
         self.response_dict['user_data'] = serializer.data
         self.response_dict['user_data']['date_joined'] = self.request.user.date_joined.strftime('%Y-%m-%d %H:%M')
         return self
 
     # noinspection PyArgumentList
-    def chain_get(self):
+    def chain_get(self: base_view.BaseView):
         self.authorize() \
             .request_handlers['GET']['specific'](self)
+
+    def handle_delete(self: base_view.BaseView) -> Optional[base_view.BaseView]:
+        if self.request.user.check_password(self.request.GET['password_hash']):
+            for group in self.request.user.group_list:
+                self.dict['group'] = group
+                group_leave_view.GroupLeaveView.request_handlers['POST']['specific'](self)
+            self.request.user.delete()
+            return self
+        else:
+            return self.error(f'Wrong current password')
+
+    def chain_delete(self: base_view.BaseView):
+        self.authorize() \
+            .require_url_parameters(['password_hash']) \
+            .request_handlers['DELETE']['specific'](self)
 
     request_handlers = {
         'GET': {
@@ -96,5 +109,9 @@ class ProfileView(base_view.BaseView):
         'PUT': {
             'chain': chain_put,
             'specific': handle_put
+        },
+        'DELETE': {
+            'chain': chain_delete,
+            'specific': handle_delete
         }
     }

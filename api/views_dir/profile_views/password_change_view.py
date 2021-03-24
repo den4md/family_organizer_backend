@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional
 
 from django.contrib import auth
@@ -12,7 +11,7 @@ class PasswordChangeView(base_view.BaseView):
         super().__init__()
         self.url_parameters = ['current_password_hash', 'new_password_hash']
 
-    def handle_put(self) -> Optional[PasswordChangeView]:
+    def handle_put(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if self.request.user.check_password(self.request.GET['current_password_hash']):
             self.request.user.set_password(self.request.GET['new_password_hash'])
             self.request.user.save()
@@ -22,7 +21,7 @@ class PasswordChangeView(base_view.BaseView):
             return self.error(f'Wrong current password')
 
     # noinspection PyArgumentList
-    def chain_put(self):
+    def chain_put(self: base_view.BaseView):
         self.authorize() \
             .require_url_parameters(self.url_parameters) \
             .request_handlers['PUT']['specific'](self)

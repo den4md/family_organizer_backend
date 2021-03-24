@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Optional
 
 from django.db import IntegrityError
@@ -9,13 +8,7 @@ from api.views_dir import base_view
 
 class SignUpView(base_view.BaseView):
 
-    def no_image_file_id(self) -> Optional[SignUpView]:
-        if 'image_file_id' not in self.dict['body_json'].keys():
-            return self
-        else:
-            return self.error(f'Image for registration is forbidden')
-
-    def create_new_user(self) -> Optional[SignUpView]:
+    def create_new_user(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         try:
             instance = self.dict['serializer'].save(username=self.dict['body_json']['email'])
             instance.set_password(self.dict['body_json']['password_hash'])
@@ -26,11 +19,12 @@ class SignUpView(base_view.BaseView):
             self.status_code = 201
             return self
 
-    def handle_post(self) -> Optional[SignUpView]:
+    # noinspection PyUnresolvedReferences
+    def handle_post(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         return self.no_image_file_id() \
             .create_new_user()
 
-    def chain_post(self):
+    def chain_post(self: base_view.BaseView):
         self.no_authorize() \
             .deserialize_json_body() \
             .body_match_app_serializer(user_serializers.UserAppSerializer) \

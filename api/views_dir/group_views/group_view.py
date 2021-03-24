@@ -1,4 +1,3 @@
-from __future__ import annotations
 import hashlib
 from typing import Optional
 
@@ -14,7 +13,7 @@ from family_organizer import settings
 class GroupView(base_view.BaseView):
     url_parameters = ['group_id']
 
-    def handle_post(self) -> Optional[GroupView]:
+    def handle_post(self: base_view.BaseView) -> Optional[base_view.BaseView]:
 
         if 'file' in self.dict.keys() and self.dict['file']:
             image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
@@ -44,7 +43,7 @@ class GroupView(base_view.BaseView):
         self.status_code = 201
         return self
 
-    def process_image_file(self) -> Optional[GroupView]:
+    def process_image_file(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if 'image_file_id' not in self.dict['body_json'].keys():
             return self
         if not validate_type.validate_type(self.dict['body_json']['image_file_id'], int):
@@ -67,7 +66,7 @@ class GroupView(base_view.BaseView):
         return self
 
     # noinspection PyUnresolvedReferences
-    def chain_post(self):
+    def chain_post(self: base_view.BaseView):
         self.authorize() \
             .deserialize_json_body() \
             .body_match_app_serializer(group_serializers.GroupAppSerializer) \
@@ -75,18 +74,18 @@ class GroupView(base_view.BaseView):
             .process_image_file() \
             .request_handlers['POST']['specific'](self)
 
-    def handle_get(self) -> Optional[GroupView]:
+    def handle_get(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         self.response_dict['group_data'] = group_serializers.GroupServSerializer(self.dict['group']).data
         return self
 
-    def chain_get(self):
+    def chain_get(self: base_view.BaseView):
         self.authorize() \
             .require_url_parameters(self.url_parameters) \
             .get_model_by_id(group.Group, self.request.GET['group_id']) \
             .user_belong_to_group() \
             .request_handlers['GET']['specific'](self)
 
-    def handle_put(self):
+    def handle_put(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if 'file' in self.dict.keys():
             if self.dict['group'].image_file != self.dict['file']:
                 if self.dict['group'].image_file:
@@ -103,7 +102,7 @@ class GroupView(base_view.BaseView):
         return self
 
     # noinspection PyUnresolvedReferences
-    def chain_put(self):
+    def chain_put(self: base_view.BaseView):
         self.authorize() \
             .require_url_parameters(self.url_parameters) \
             .get_model_by_id(group.Group, self.request.GET['group_id']) \

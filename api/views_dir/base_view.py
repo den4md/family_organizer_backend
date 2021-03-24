@@ -14,6 +14,7 @@ from api.serializers_dir import base_app_serializer
 
 class BaseView:
     request_handlers = {}
+    url_parameters = []
 
     def __init__(self):
         if type(self) == BaseView:
@@ -85,6 +86,12 @@ class BaseView:
             return self.error(f'Error while deserializing: \n{str(e)}')
         else:
             return self
+
+    def no_image_file_id(self: BaseView) -> Optional[BaseView]:
+        if 'image_file_id' not in self.dict['body_json'].keys():
+            return self
+        else:
+            return self.error(f'Image for registration is forbidden')
 
     def body_match_app_serializer(self, serializer: Type[base_app_serializer.BaseAppSerializer],
                                   required: bool = True) -> Optional[BaseView]:

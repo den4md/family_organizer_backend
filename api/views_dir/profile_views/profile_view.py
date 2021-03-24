@@ -80,7 +80,6 @@ class ProfileView(base_view.BaseView):
     def handle_get(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         serializer = user_serializers.UserServSerializer(self.request.user)
         self.response_dict['user_data'] = serializer.data
-        self.response_dict['user_data']['date_joined'] = self.request.user.date_joined.strftime('%Y-%m-%d %H:%M')
         return self
 
     # noinspection PyArgumentList

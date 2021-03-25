@@ -1,7 +1,6 @@
+import datetime
 import hashlib
 from typing import Optional
-
-from django.utils import timezone
 
 from api.helpers import validate_type, image_helper
 from api.models_dir import file, chat, group
@@ -27,7 +26,7 @@ class GroupView(base_view.BaseView):
             self.dict['file'].group = new_group
             self.dict['file'].save()
 
-        today_hash = hashlib.md5(str(timezone.now()).encode('utf8')).hexdigest()
+        today_hash = hashlib.md5(str(datetime.datetime.now()).encode('utf8')).hexdigest()
         new_group.invite_id = today_hash[:16] + str(new_group.id) + today_hash[16:]
 
         new_group.user_member_list.add(self.request.user)
@@ -95,7 +94,8 @@ class GroupView(base_view.BaseView):
                     self.dict['group'].image_file_thumb = None
                 if self.dict['file']:
                     self.dict['group'].image_file = self.dict['file']
-                    self.dict['group'].image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
+                    self.dict['group'].image_file_thumb = image_helper.make_thumbnail_base64_str(
+                        self.dict['file'].file_path)
                     self.dict['file'].group = self.dict['group']
                     self.dict['file'].save()
 

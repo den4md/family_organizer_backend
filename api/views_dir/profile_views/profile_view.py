@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 from django.db import IntegrityError
@@ -92,6 +93,10 @@ class ProfileView(base_view.BaseView):
             for group in self.request.user.group_list:
                 self.dict['group'] = group
                 group_leave_view.GroupLeaveView.request_handlers['POST']['specific'](self)
+            for user_file in self.request.file_list:
+                if user_file.group:
+                    os.remove(settings.FILE_STORAGE + user_file.path)
+                    user_file.delete()
             self.request.user.delete()
             return self
         else:

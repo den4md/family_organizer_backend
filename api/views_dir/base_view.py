@@ -37,6 +37,7 @@ class BaseView:
 
     def request_handle(self, request: HttpRequest) -> HttpResponse:
         self.request = request
+        # noinspection PyUnusedLocal
         try:
             self.transmit_handle()
         except AttributeError as e:
@@ -48,7 +49,9 @@ class BaseView:
         finally:
             if self.status_code >= 400:
                 print(self.response_dict['result'])
-            return HttpResponse(json.dumps(self.response_dict), status=self.status_code)
+            if 'response' not in self.dict.keys():
+                self.dict['response'] = HttpResponse(json.dumps(self.response_dict), status=self.status_code)
+        return self.dict['response']
 
     def transmit_handle(self):
         if self.request.method in self.request_handlers.keys():
@@ -77,7 +80,7 @@ class BaseView:
 
     def require_url_parameters(self, parameters: List[str]) -> Optional[BaseView]:
         for parameter in parameters:
-            if parameter not in self.request.GET.keys():
+            if parameter not in self.request.GET.keys() or not self.request.GET[parameter]:
                 return self.error(f'Can\'t find {parameter} in url parameters')
         return self
 
@@ -127,7 +130,7 @@ class BaseView:
         try:
             self.dict[self.var_name_from_model(model)] = model.objects.get(id=model_id)
         except exceptions.ObjectDoesNotExist:
-            return self.error(f'{model.__name__} with id "{model_id}" does not exist')
+            return self.error(f'{model.__name__} with id "{model_id}" does not exist', 404)
         except ValueError as e:
             return self.error(f'Wrong parameter type: \n{str(e)}')
         else:

@@ -3,7 +3,7 @@ from django.urls import path, include
 urlpatterns = [
     path('', include('api.urls_dir.profile_urls')),
     path('', include('api.urls_dir.group_urls')),
-    # path('', include('api.urls_dir.file_urls')),
+    path('', include('api.urls_dir.file_urls')),
     # path('', include('api.urls_dir.note_urls')),
     # path('', include('api.urls_dir.event_urls')),
     # path('', include('api.urls_dir.map_point_urls')),

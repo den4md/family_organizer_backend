@@ -1,11 +1,12 @@
+import datetime
+
 from django.conf import settings
-from django.utils import timezone
 from django.db import models
 
 
 class Group(models.Model):
     name = models.CharField(max_length=75)
-    create_date = models.DateField(default=timezone.now)
+    create_date = models.DateField(default=datetime.datetime.now)
     invite_id = models.CharField(max_length=75, null=True, unique=True, blank=True)
     user_creator = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                      related_name='+', blank=True)

@@ -46,13 +46,14 @@ class ProfileView(base_view.BaseView):
             if self.dict['file'].user_uploader != self.request.user or self.dict['file'].group:
                 return self.error('This file can\'t be used as profile avatar, '
                                   'because is already used by group/other user')
-            if self.dict['file'].type not in settings.IMAGE_TYPES:
-                return self.error(f'Wrong type of image ("{self.dict["file"].type}")'
+            if self.dict['file'].extension not in settings.IMAGE_TYPES:
+                return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
                                   f'. Allowed types: ' +
                                   '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
             image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
 
         if self.request.user.image_file:
+            os.remove(settings.FILE_STORAGE + self.request.user.image_file.file_path)
             self.request.user.image_file.delete()
             self.request.user.image_file = None
             self.request.user.image_file_thumb = None

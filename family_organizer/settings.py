@@ -10,7 +10,7 @@ SECRET_KEY = '8)3y%w6alvr*=thf(ws3w34^+z*k&_jzn(rs7k3t+$cks1ltu8'
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '-',  # For dynamic IP this need to be changed
+    '94.243.97.68',  # For dynamic IP this need to be changed
     '192.168.1.20',
     '127.0.0.1',
     '0.0.0.0',
@@ -24,7 +24,7 @@ INVITE_INTENT = 'app://family-organizer.com/'
 FILE_STORAGE = 'files/'
 TEMP_STORAGE = 'tmp/'
 IMAGE_MIN_SIZE = 300  # px
-IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico']
+IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico', 'webp']
 
 
 # Application definition
@@ -114,7 +114,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

@@ -57,6 +57,7 @@ class FileView(base_view.BaseView):
     banned_symbols = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
 
     def handle_post(self: base_view.BaseView) -> Optional[base_view.BaseView]:
+        # TODO crop name to 50
         # Check for files number in request
         if not self.request.FILES:
             return self.error('No file was found')
@@ -112,6 +113,7 @@ class FileView(base_view.BaseView):
                                             group=self.dict['group'], checksum_md5=checksum_md5)
 
         self.response_dict['file_id'] = new_file.id
+        self.status_code = 201
         return self
 
     def chain_post(self: base_view.BaseView):
@@ -137,7 +139,7 @@ class FileView(base_view.BaseView):
 
         file_data = file_object.read()
         file_object.close()
-        self.dict['response'] = HttpResponse(file_data, content_type='application/file; charset=utf-8')
+        self.dict['response'] = HttpResponse(file_data, content_type='application/file; charset=none')
 
         #################
         # wsgi.headers.Headers.__bytes__ was manually edited from 'iso-8859-1' to 'utf-8',

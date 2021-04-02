@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import os
 from typing import Optional
 
 from api.helpers import validate_type, image_helper
@@ -54,11 +55,12 @@ class GroupView(base_view.BaseView):
         else:
             self.dict['file'] = None
             return self
-        if self.dict['file'].type not in settings.IMAGE_TYPES:
-            return self.error(f'Wrong type of image ("{self.dict["file"].type}")'
+        if self.dict['file'].extension not in settings.IMAGE_TYPES:
+            return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
                               f'. Allowed types: ' +
                               '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
-        if self.dict['file'].user_uploader != self.request.user or self.dict['file'].group:
+        if not (self.dict['file'].group and self.dict['file'].group == self.dict['group']) and not (
+                (not self.dict['file'].group) and self.dict['file'].user_uploader == self.request.user):
             return self.error(f'This file can\'t be used as group avatar, '
                               f'because is already used by other group/other user')
         if self.dict['file'] == self.request.user.image_file:
@@ -89,6 +91,7 @@ class GroupView(base_view.BaseView):
         if 'file' in self.dict.keys():
             if self.dict['group'].image_file != self.dict['file']:
                 if self.dict['group'].image_file:
+                    os.remove(settings.FILE_STORAGE + self.dict['group'].image_file.file_path)
                     self.dict['group'].image_file.delete()
                     self.dict['group'].image_file = None
                     self.dict['group'].image_file_thumb = None

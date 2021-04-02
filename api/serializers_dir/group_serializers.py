@@ -33,4 +33,4 @@ class GroupServMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = group.Group
-        fields = ['id', 'name', 'image_file', 'invite_link']
+        fields = ['id', 'name', 'image_file', 'invite_link', 'image_file_thumb']

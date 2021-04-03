@@ -20,7 +20,7 @@ class SubtaskServSerializer(serializers.ModelSerializer):
     file_list = file_serializers.FileServSerializer(many=True, read_only=True)
     deadline_datetime = string_datetime_field.StringDatetimeField(read_only=True)
     user_responsible_list = user_serializers.UserServMiniSerializer(many=True, read_only=True)
-    user_creator = user_serializers.UserServMiniSerializer
+    user_creator = user_serializers.UserServMiniSerializer(read_only=True)
 
     class Meta:
         model = subtask.Subtask

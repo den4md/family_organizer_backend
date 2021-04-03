@@ -21,7 +21,7 @@ class TaskServSerializer(serializers.ModelSerializer):
     deadline_datetime = string_datetime_field.StringDatetimeField(read_only=True)
     user_responsible_list = user_serializers.UserServMiniSerializer(many=True, read_only=True)
     subtask_list = subtask_serializers.SubtaskServSerializer(many=True, read_only=True)
-    user_creator = user_serializers.UserServMiniSerializer
+    user_creator = user_serializers.UserServMiniSerializer(read_only=True)
 
     class Meta:
         model = task.Task

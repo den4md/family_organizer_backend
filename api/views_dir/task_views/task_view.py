@@ -179,8 +179,10 @@ class TaskView(base_view.BaseView):
             .request_handlers['PUT']['specific'](self)
 
     def handle_delete(self) -> Optional[base_view.BaseView]:
-        self.dict['task'].delete()
-        return self
+        if self.dict['task'].group == self.dict['group']:
+            self.dict['task'].delete()
+            return self
+        return self.error('Note doesn\'t belong to group')
 
     def chain_delete(self):
         self.authorize() \

@@ -56,6 +56,7 @@ class EventView(base_view.BaseView):
             .get_model_by_id(group.Group, self.request.GET['group_id']) \
             .user_belong_to_group() \
             .get_model_by_id(event.Event, self.request.GET['event_id']) \
+            .model_belong_to_group('event') \
             .request_handlers['GET']['specific'](self)
 
     def handle_put(self) -> Optional[base_view.BaseView]:
@@ -87,14 +88,13 @@ class EventView(base_view.BaseView):
             .deserialize_json_body() \
             .body_match_app_serializer(event_serializers.EventAppSerializer, required=False) \
             .get_model_by_id(event.Event, self.request.GET['event_id']) \
+            .model_belong_to_group('event') \
             .put_serializer(self.dict['event'], event_serializers.EventAppSerializer) \
             .request_handlers['PUT']['specific'](self)
 
     def handle_delete(self) -> Optional[base_view.BaseView]:
-        if self.dict['event'].group == self.dict['group']:
-            self.dict['event'].delete()
-            return self
-        return self.error('Event doesn\'t belong to group')
+        self.dict['event'].delete()
+        return self
 
     def chain_delete(self):
         self.authorize() \
@@ -102,6 +102,7 @@ class EventView(base_view.BaseView):
             .get_model_by_id(group.Group, self.request.GET['group_id']) \
             .user_belong_to_group() \
             .get_model_by_id(event.Event, self.request.GET['event_id']) \
+            .model_belong_to_group('event') \
             .request_handlers['DELETE']['specific'](self)
 
     request_handlers = {

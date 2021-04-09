@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
             field=models.DateField(default=datetime.datetime.now),
         ),
         migrations.AlterField(
-            model_name='subtask_json',
+            model_name='subtask',
             name='create_date',
             field=models.DateField(default=datetime.datetime.now),
         ),

@@ -122,6 +122,7 @@ class TaskView(base_view.BaseView):
             .get_model_by_id(group.Group, self.request.GET['group_id']) \
             .user_belong_to_group() \
             .get_model_by_id(task.Task, self.request.GET['note_id']) \
+            .model_belong_to_group('task') \
             .request_handlers['GET']['specific'](self)
 
     def handle_put(self) -> Optional[base_view.BaseView]:
@@ -175,14 +176,13 @@ class TaskView(base_view.BaseView):
             .deserialize_json_body() \
             .body_match_app_serializer(task_serializers.TaskAppSerializer, required=False) \
             .get_model_by_id(task.Task, self.request.GET['note_id']) \
+            .model_belong_to_group('task') \
             .put_serializer(self.dict['task'], task_serializers.TaskAppSerializer) \
             .request_handlers['PUT']['specific'](self)
 
     def handle_delete(self) -> Optional[base_view.BaseView]:
-        if self.dict['task'].group == self.dict['group']:
-            self.dict['task'].delete()
-            return self
-        return self.error('Note doesn\'t belong to group')
+        self.dict['task'].delete()
+        return self
 
     def chain_delete(self):
         self.authorize() \
@@ -190,6 +190,7 @@ class TaskView(base_view.BaseView):
             .get_model_by_id(group.Group, self.request.GET['group_id']) \
             .user_belong_to_group() \
             .get_model_by_id(task.Task, self.request.GET['note_id']) \
+            .model_belong_to_group('task') \
             .request_handlers['DELETE']['specific'](self)
 
     request_handlers = {

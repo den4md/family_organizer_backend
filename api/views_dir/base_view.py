@@ -145,3 +145,4 @@ class BaseView:
     def model_belong_to_group(self, model_name: str) -> Optional[BaseView]:
         if self.dict[model_name].group != self.dict['group']:
             return self.error(f'{model_name} with id = "{self.dict[model_name].id}" doesn\'t belong to group', 403)
+        return self

@@ -59,8 +59,14 @@ class GroupView(base_view.BaseView):
             return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
                               f'. Allowed types: ' +
                               '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
-        if not (self.dict['file'].group and self.dict['file'].group == self.dict['group']) and not (
-                (not self.dict['file'].group) and self.dict['file'].user_uploader == self.request.user):
+        if self.request.method == 'POST' and (
+                self.dict['file'].group or self.request.user != self.dict['file'].user_uploader):
+            return self.error(f'This file can\'t be used as group avatar, '
+                              f'because is already used by other group/other user')
+
+        if self.request.method == 'PUT' and \
+                ((self.dict['file'].group and self.dict['file'].group != self.dict['group']) or
+                 ((not self.dict['file'].group) and self.dict['file'].user_uploader != self.request.user)):
             return self.error(f'This file can\'t be used as group avatar, '
                               f'because is already used by other group/other user')
         if self.dict['file'] == self.request.user.image_file:

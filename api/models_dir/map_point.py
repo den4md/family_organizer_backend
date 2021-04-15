@@ -8,6 +8,7 @@ class MapPoint(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(null=True, blank=True)
     image_file = models.ForeignKey(to='File', null=True, on_delete=models.SET_NULL, related_name='+', blank=True)
+    image_file_thumb = models.TextField(null=True, blank=True)
     longitude = models.FloatField()
     latitude = models.FloatField()
     create_date = models.DateField(default=datetime.datetime.now)

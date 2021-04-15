@@ -25,7 +25,7 @@ class EventListView(base_view.BaseView):
             except ValueError as e:
                 print(f'Can\'t parse date "{self.request.GET["end_date"]}";\n{str(e)}')
         self.response_dict['event_list'] = event_serializers.EventServMiniSerializer(event_list,
-                                                                                    many=True).data
+                                                                                     many=True).data
         return self
 
     def chain_get(self):

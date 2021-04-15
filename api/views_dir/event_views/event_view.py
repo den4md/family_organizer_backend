@@ -33,6 +33,7 @@ class EventView(base_view.BaseView):
             event_.file_list.add(file_)
         if 'map_point_id' in self.dict['body_json'].keys():
             event_.map_point = self.dict['map_point']
+            event_.save()
         self.response_dict['event_id'] = event_.id
         return self
 
@@ -78,6 +79,7 @@ class EventView(base_view.BaseView):
                 self.dict['event'].file_list.add(file_)
         if 'map_point_id' in self.dict['body_json'].keys():
             self.dict['event'].map_point = self.dict['map_point']
+            self.dict['event'].save()
         return self
 
     def chain_put(self):

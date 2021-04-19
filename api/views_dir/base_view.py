@@ -12,6 +12,10 @@ from api.helpers import write_style_helpers
 from api.serializers_dir import base_app_serializer
 
 
+def make_float(obj):
+    return 0 if obj is None else float(obj)
+
+
 class BaseView:
     request_handlers = {}
     url_parameters = []

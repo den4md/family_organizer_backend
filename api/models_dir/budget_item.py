@@ -11,5 +11,5 @@ class BudgetItem(models.Model):
     payment_datetime = models.DateTimeField(default=datetime.datetime.now)
     user_payer = models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='+', null=True,
                                    on_delete=models.SET_NULL, blank=True)
-    category_list = models.ManyToManyField(to='BudgetCategory', related_name='+')
+    budget_category_list = models.ManyToManyField(to='BudgetCategory', related_name='budget_item_list')
     group = models.ForeignKey(to='Group', on_delete=models.CASCADE, related_name='budget_item_list')

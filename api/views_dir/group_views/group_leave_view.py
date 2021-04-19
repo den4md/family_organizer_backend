@@ -5,6 +5,7 @@ from api.models_dir import group
 from api.views_dir import base_view
 
 
+# TODO Put null where it needs to be
 class GroupLeaveView(base_view.BaseView):
     url_parameters = ['group_id']
 

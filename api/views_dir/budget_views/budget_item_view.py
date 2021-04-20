@@ -2,6 +2,7 @@ from typing import Optional
 
 from django.db import IntegrityError
 from django.db.models import Count
+from rest_framework.exceptions import ValidationError
 
 from api.models_dir import group, user, budget_category, budget_item
 from api.serializers_dir import budget_item_serializers, budget_category_serializers
@@ -11,30 +12,39 @@ from api.views_dir import base_view
 class BudgetItemView(base_view.BaseView):
     url_parameters = ['group_id', 'budget_item_id']
 
-    def collect_budget_category_list(self, target_list: list, budget_category_list: list):
+    def collect_budget_category_list(self, target_list: list,
+                                     budget_category_list: list) -> Optional[base_view.BaseView]:
+        if budget_category_list is not None:
+            if not isinstance(budget_category_list, list):
+                return self.error(f'Object of "budget_category_list" isn\'t a list')
+        else:
+            return self
+
         for budget_category_item in budget_category_list:
             try:
                 serializer = budget_category_serializers.BudgetCategoryAppSerializer(data=budget_category_item)
-                if not serializer.is_valid():
-                    return self.error(f'Object "{str(budget_category_item)}" doesn\'t fit the rules')
+                serializer.is_valid(raise_exception=True)
                 budget_category_ = serializer.save(group=self.dict['group'])
             except IntegrityError:
                 budget_category_ = budget_category.BudgetCategory.objects.get(name=budget_category_item['name'],
                                                                               group=self.dict['group'])
+            except ValidationError as e:
+                return self.error(f'Error while validating object: {str(e)}')
             target_list.append(budget_category_)
         return self
 
     def handle_post(self) -> Optional[base_view.BaseView]:
         if self.dict['body_json']['amount'] <= 0:
             return self.error(f'Can accept only positive amount, not "{str(self.dict["body_json"]["amount"])}"')
-        if 'user_payer_id' in self.dict['body_json'].keys():
+        if 'user_payer_id' in self.dict['body_json'].keys() and self.dict['body_json']['user_payer_id'] is not None:
             if not self.get_model_by_id(user.User, self.dict['body_json']['user_payer_id']) or \
-                    self.dict['user'] not in self.dict['group'].user_member_list.all():
-                return self.error(f'This user doesn\'t belong to group')
+                    not self.model_belong_to_group('user'):
+                return
         else:
             self.dict['user'] = None
+
+        self.dict['budget_category_list'] = []
         if 'budget_category_list' in self.dict['body_json'].keys():
-            self.dict['budget_category_list'] = []
             if not self.collect_budget_category_list(self.dict['budget_category_list'],
                                                      self.dict['body_json']['budget_category_list']):
                 return
@@ -76,14 +86,13 @@ class BudgetItemView(base_view.BaseView):
             Count('budget_item_list')).filter(budget_item_list__count=0).delete()
 
     def handle_put(self) -> Optional[base_view.BaseView]:
-        if 'amount' in self.dict['body_json'].keys() and (
-                not self.dict['body_json']['amount'] or self.dict['body_json']['amount'] <= 0):
+        if 'amount' in self.dict['body_json'].keys() and self.dict['body_json']['amount'] <= 0:
             return self.error(f'Can accept only positive amount, not "{str(self.dict["body_json"]["amount"])}"')
         if 'user_payer_id' in self.dict['body_json'].keys():
-            if self.dict['body_json']['user_payer_id']:
+            if self.dict['body_json']['user_payer_id'] is not None:
                 if not self.get_model_by_id(user.User, self.dict['body_json']['user_payer_id']) or \
-                        self.dict['user'] not in self.dict['group'].user_member_list:
-                    return self.error(f'This user doesn\'t belong to group')
+                        not self.model_belong_to_group('user'):
+                    return
             else:
                 self.dict['user'] = None
         if 'budget_category_list' in self.dict['body_json'].keys():
@@ -92,11 +101,10 @@ class BudgetItemView(base_view.BaseView):
                                                      self.dict['body_json']['budget_category_list']):
                 return
 
-        self.dict['budget_item'].save()
-
         if 'user_payer_id' in self.dict['body_json'].keys():
             self.dict['budget_item'].user_payer = self.dict['user']
-            self.dict['budget_item'].save()
+
+        self.dict['budget_item'].save()
 
         if 'budget_category_list' in self.dict['body_json'].keys():
             self.dict['budget_item'].budget_category_list.clear()
@@ -121,6 +129,7 @@ class BudgetItemView(base_view.BaseView):
 
     def handle_delete(self) -> Optional[base_view.BaseView]:
         self.dict['budget_item'].delete()
+        self.clear_unused_budget_categories()
         return self
 
     def chain_delete(self):

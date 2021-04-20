@@ -79,9 +79,9 @@ class FileView(base_view.BaseView):
 
         # Get group data if it need
         if 'group_id' in self.request.GET.keys():
-            if self.request.GET['group_id']:
-                if not (self.get_model_by_id(group.Group, self.request.GET['group_id'])
-                        and self.user_belong_to_group()):
+            if self.request.GET['group_id'] is not None:
+                if not (self.get_model_by_id(group.Group, self.request.GET['group_id']) and
+                        self.user_belong_to_group()):
                     return
             else:
                 return self.error('No "group_id" value is granted')
@@ -99,12 +99,12 @@ class FileView(base_view.BaseView):
         if same_files.count():
             for same_file in same_files.iterator():
                 if check_for_duplicate(settings.FILE_STORAGE + file_path, settings.FILE_STORAGE + same_file.file_path):
-                    os.remove(settings.FILE_STORAGE + file_path)
+                    base_view.delete_file(file_path)
                     self.response_dict['file_id'] = same_file.id
                     return self.error(f'Same file is already exists')
 
         # Get more data to save object
-        if 'file_name' in self.request.GET.keys() and self.request.GET['file_name']:
+        if 'file_name' in self.request.GET.keys() and self.request.GET['file_name'] is not None:
             file_name = self.request.GET['file_name']
         file_size = os.path.getsize(settings.FILE_STORAGE + file_path)
 
@@ -122,17 +122,17 @@ class FileView(base_view.BaseView):
 
     def handle_get(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if 'group_id' in self.request.GET.keys():
-            if not self.request.GET['group_id']:
+            if self.request.GET['group_id'] is None:
                 return self.error('No "group_id" value is granted')
             else:
-                if not self.get_model_by_id(group.Group,
-                                            self.request.GET['group_id']) or not self.user_belong_to_group():
+                if not self.get_model_by_id(group.Group, self.request.GET['group_id']) or \
+                        not self.user_belong_to_group():
                     return
         else:
             self.dict['group'] = None
 
         if self.dict['file'].group != self.dict['group'] or (
-                not self.dict['group'] and self.dict['file'].user_uploader != self.request.user):
+                self.dict['group'] is None and self.dict['file'].user_uploader != self.request.user):
             return self.error(f'File with id "{self.request.GET["file_id"]}" does not exist', 404)
 
         file_object = open(settings.FILE_STORAGE + self.dict['file'].file_path, 'rb')
@@ -163,11 +163,11 @@ class FileView(base_view.BaseView):
 
     def handle_delete(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if 'group_id' in self.request.GET.keys():
-            if not self.request.GET['group_id']:
+            if self.request.GET['group_id'] is None:
                 return self.error('No "group_id" value is granted')
             else:
-                if not self.get_model_by_id(group.Group,
-                                            self.request.GET['group_id']) or not self.user_belong_to_group():
+                if not self.get_model_by_id(group.Group, self.request.GET['group_id']) or \
+                        not self.user_belong_to_group():
                     return
         else:
             self.dict['group'] = None

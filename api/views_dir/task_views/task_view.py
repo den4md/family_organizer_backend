@@ -12,25 +12,32 @@ class TaskView(base_view.BaseView):
 
     def attach_files(self, file_id_list: list, file_list: list) -> Optional[base_view.BaseView]:
         self.dict['is_task'] = True
+        if file_id_list is None:
+            return self
+        if not isinstance(file_id_list, list):
+            return self.error(f'"file_id_list" isn\'t a list')
         for file_id in file_id_list:
-            if not self.get_model_by_id(file.File, file_id) or self.dict['file'].group != self.dict['group']:
-                self.error('Can\'t attach this file (doesn\'t exist or doesn\'t belong to group)')
-                return None
+            if not self.get_model_by_id(file.File, file_id) or not self.model_belong_to_group('file'):
+                return
             file_list.append(self.dict['file'])
         return self
 
     def attach_responsible(self, user_responsible_id_list: list,
                            user_responsible_list: list) -> Optional[base_view.BaseView]:
         self.dict['is_task'] = True
+        if user_responsible_id_list is None:
+            return self
+        if not isinstance(user_responsible_id_list, list):
+            return self.error(f'"user_responsible_id_list" isn\'t a list')
         for user_id in user_responsible_id_list:
-            if not self.get_model_by_id(user.User, user_id) or \
-                    self.dict['user'] not in self.dict['group'].user_member_list.all():
-                self.error('Can\'t attach this user (doesn\'t exist or doesn\'t belong to group)')
-                return None
+            if not self.get_model_by_id(user.User, user_id) or not self.model_belong_to_group('user'):
+                return
             user_responsible_list.append(self.dict['user'])
         return self
 
     def serialize_subtask(self, subtask_json: dict, subtask: dict) -> Optional[base_view.BaseView]:
+        if not isinstance(subtask_json, dict):
+            return self.error(f'"subtask" isn\'t a object')
         for key in subtask_json.keys():
             if key not in subtask_serializers.SubtaskAppSerializer.Meta.possible_fields:
                 return self.error(f'Can\'t edit value for "{str(key)}"')
@@ -45,25 +52,31 @@ class TaskView(base_view.BaseView):
         subtask['file_list'] = []
         if 'file_id_list' in subtask_json.keys():
             if not self.attach_files(subtask_json['file_id_list'], subtask['file_list']):
-                return None
+                return
         subtask['user_responsible_list'] = []
         if 'user_responsible_id_list' in subtask_json.keys():
             if not self.attach_responsible(subtask_json['user_responsible_id_list'],
                                            subtask['user_responsible_list']):
-                return None
+                return
         return self
 
     def attach_subtasks(self) -> Optional[base_view.BaseView]:
         self.dict['is_task'] = True
+        if self.dict['body_json']['subtask_list'] is None:
+            return self
+        if not isinstance(self.dict['body_json']['subtask_list'], list):
+            return self.error(f'"subtask_list" isn\'t a list')
         for task_ in self.dict['body_json']['subtask_list']:
             self.dict['subtask_list'].append(dict())
             if not self.serialize_subtask(task_, self.dict['subtask_list'][-1]):
-                return None
+                return
         return self
 
     def handle_post(self) -> Optional[base_view.BaseView]:
-        if ('status' in self.dict['body_json'].keys() and self.dict['body_json']['status']) or (
-                'deadline_datetime' in self.dict['body_json'].keys() and self.dict['body_json']['deadline_datetime']):
+        if ('status' in self.dict['body_json'].keys() and (self.dict['body_json']['status'] is not None and
+                                                           self.dict['body_json']['status'] != 'not available')) or (
+                'deadline_datetime' in self.dict['body_json'].keys() and
+                self.dict['body_json']['deadline_datetime'] is not None):
             self.dict['is_task'] = True
         else:
             self.dict['is_task'] = False
@@ -71,16 +84,16 @@ class TaskView(base_view.BaseView):
         self.dict['file_list'] = []
         if 'file_id_list' in self.dict['body_json'].keys():
             if not self.attach_files(self.dict['body_json']['file_id_list'], self.dict['file_list']):
-                return None
+                return
         self.dict['user_responsible_list'] = []
         if 'user_responsible_id_list' in self.dict['body_json'].keys():
             if not self.attach_responsible(self.dict['body_json']['user_responsible_id_list'],
                                            self.dict['user_responsible_list']):
-                return None
+                return
         self.dict['subtask_list'] = []
         if 'subtask_list' in self.dict['body_json'].keys():
             if not self.attach_subtasks():
-                return None
+                return
 
         # All validation was passed
         # Building
@@ -126,24 +139,25 @@ class TaskView(base_view.BaseView):
             .request_handlers['GET']['specific'](self)
 
     def handle_put(self) -> Optional[base_view.BaseView]:
-        if self.dict['task'].status or self.dict['task'].deadline_datetime:
+        if (self.dict['task'].status is not None and self.dict['task'].status != 'not available') or \
+                self.dict['task'].deadline_datetime is not None:
             self.dict['is_task'] = True
         else:
             self.dict['is_task'] = False
 
-        self.dict['file_list'] = []
         if 'file_id_list' in self.dict['body_json'].keys():
+            self.dict['file_list'] = []
             if not self.attach_files(self.dict['body_json']['file_id_list'], self.dict['file_list']):
-                return None
-        self.dict['user_responsible_list'] = []
+                return
         if 'user_responsible_id_list' in self.dict['body_json'].keys():
+            self.dict['user_responsible_list'] = []
             if not self.attach_responsible(self.dict['body_json']['user_responsible_id_list'],
                                            self.dict['user_responsible_list']):
-                return None
-        self.dict['subtask_list'] = []
+                return
         if 'subtask_list' in self.dict['body_json'].keys():
+            self.dict['subtask_list'] = []
             if not self.attach_subtasks():
-                return None
+                return
 
         self.dict['task'].is_task = self.dict['is_task']
         self.dict['task'].save()

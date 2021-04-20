@@ -9,7 +9,7 @@ class Event(models.Model):
     description = models.TextField(null=True, blank=True)
     event_datetime = models.DateTimeField()
     file_list = models.ManyToManyField(to='File', related_name='+')
-    map_point = models.ForeignKey(to='MapPoint', null=True, on_delete=models.CASCADE, related_name='event_list',
+    map_point = models.ForeignKey(to='MapPoint', null=True, on_delete=models.SET_NULL, related_name='event_list',
                                   blank=True)
     notify_datetime = models.DateTimeField(null=True, blank=True)
     create_date = models.DateField(default=datetime.datetime.now)

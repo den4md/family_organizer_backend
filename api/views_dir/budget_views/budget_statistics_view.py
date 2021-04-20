@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Type
+from typing import Optional, Type, Callable
 from django.db import models
 from django.db.models import Sum
 
@@ -19,11 +19,11 @@ class BudgetStatisticsView(base_view.BaseView):
         self.dict['budget_item_list'] = self.dict['budget_item_list'].filter(
             user_payer__id__in=self.dict['body_json']['user_id_list'])
 
-    def check_filter_by_model(self, model: Type[models.Model], filter_method) -> Optional[base_view.BaseView]:
+    def check_filter_by_model(self, model: Type[models.Model], filter_method: Callable) -> Optional[base_view.BaseView]:
         model_str = write_style_helpers.camel_case_to_snake_case(model.__name__)
-        if f'{model_str}_id_list' not in self.dict['body_json'].keys() or type(
-                self.dict['body_json'][f'{model_str}_id_list']) != list:
-            return self.error(f'Can\'t find dictionary "{model_str}_id_list" in filters')
+        if f'{model_str}_id_list' not in self.dict['body_json'].keys() or not isinstance(
+                self.dict['body_json'][f'{model_str}_id_list'], list):
+            return self.error(f'Can\'t find list "{model_str}_id_list" in filters')
         for model_id in self.dict['body_json'][f'{model_str}_id_list']:
             if not self.get_model_by_id(model, model_id):
                 return

@@ -7,16 +7,16 @@ class FileListView(base_view.BaseView):
 
     def handle_get(self):
         if 'group_id' in self.request.GET.keys():
-            if not self.request.GET['group_id']:
+            if self.request.GET['group_id'] is None:
                 return self.error('No "group_id" value is granted')
             else:
-                if not self.get_model_by_id(group.Group,
-                                            self.request.GET['group_id']) or not self.user_belong_to_group():
+                if not self.get_model_by_id(group.Group, self.request.GET['group_id']) or \
+                        not self.user_belong_to_group():
                     return
         else:
             self.dict['group'] = None
 
-        if self.dict['group']:
+        if self.dict['group'] is not None:
             file_list = file.File.objects.filter(group=self.dict['group'])
         else:
             file_list = file.File.objects.filter(group=None, user_uploader=self.request.user)

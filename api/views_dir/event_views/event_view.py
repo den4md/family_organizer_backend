@@ -9,10 +9,11 @@ class EventView(base_view.BaseView):
     url_parameters = ['group_id', 'event_id']
 
     def attach_files(self, file_id_list: list, file_list: list) -> Optional[base_view.BaseView]:
+        if not isinstance(file_id_list, list):
+            return self.error(f'Object of "file_id_list" isn\'t a list')
         for file_id in file_id_list:
-            if not self.get_model_by_id(file.File, file_id) or self.dict['file'].group != self.dict['group']:
-                self.error('Can\'t attach this file (doesn\'t exist or doesn\'t belong to group)')
-                return None
+            if not self.get_model_by_id(file.File, file_id) or not self.model_belong_to_group('file'):
+                return
             file_list.append(self.dict['file'])
         return self
 
@@ -20,20 +21,20 @@ class EventView(base_view.BaseView):
         self.dict['file_list'] = []
         if 'file_id_list' in self.dict['body_json'].keys():
             if not self.attach_files(self.dict['body_json']['file_id_list'], self.dict['file_list']):
-                return None
-        if 'map_point_id' in self.dict['body_json'].keys():
+                return
+        if 'map_point_id' in self.dict['body_json'].keys() and self.dict['body_json']['map_point_id'] is not None:
             if not self.get_model_by_id(map_point.MapPoint, self.dict['body_json']['map_point_id']) or \
-                    self.dict['map_point'].group != self.dict['group']:
-                self.error('Can\'t attach this map point (doesn\'t exist or doesn\'t belong to group)')
-                return None
+                    not self.model_belong_to_group('map_point'):
+                return
+        else:
+            self.dict['map_point'] = None
 
-        event_ = self.dict['serializer'].save(user_creator=self.request.user, group=self.dict['group'])
+        event_ = self.dict['serializer'].save(user_creator=self.request.user, group=self.dict['group'],
+                                              map_point=self.dict['map_point'])
 
         for file_ in self.dict['file_list']:
             event_.file_list.add(file_)
-        if 'map_point_id' in self.dict['body_json'].keys():
-            event_.map_point = self.dict['map_point']
-            event_.save()
+
         self.response_dict['event_id'] = event_.id
         return self
 
@@ -61,15 +62,17 @@ class EventView(base_view.BaseView):
             .request_handlers['GET']['specific'](self)
 
     def handle_put(self) -> Optional[base_view.BaseView]:
-        self.dict['file_list'] = []
         if 'file_id_list' in self.dict['body_json'].keys():
+            self.dict['file_list'] = []
             if not self.attach_files(self.dict['body_json']['file_id_list'], self.dict['file_list']):
-                return None
+                return
         if 'map_point_id' in self.dict['body_json'].keys():
-            if not self.get_model_by_id(map_point.MapPoint, self.dict['body_json']['map_point_id']) or \
-                    self.dict['map_point'].group != self.dict['group']:
-                self.error('Can\'t attach this map point (doesn\'t exist or doesn\'t belong to group)')
-                return None
+            if self.dict['body_json']['map_point_id'] is not None:
+                if not self.get_model_by_id(map_point.MapPoint, self.dict['body_json']['map_point_id']) or \
+                        not self.model_belong_to_group('map_point'):
+                    return
+            else:
+                self.dict['map_point'] = None
 
         self.dict['event'].save()
 

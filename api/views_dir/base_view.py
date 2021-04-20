@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import os
 import traceback
 from typing import Optional, Type, List
 
@@ -10,10 +11,15 @@ from rest_framework.exceptions import ValidationError
 
 from api.helpers import write_style_helpers
 from api.serializers_dir import base_app_serializer
+from family_organizer import settings
 
 
 def make_float(obj):
     return 0 if obj is None else float(obj)
+
+
+def delete_file(file_path):
+    os.remove(settings.FILE_STORAGE + file_path)
 
 
 class BaseView:
@@ -49,7 +55,7 @@ class BaseView:
         except Exception as e:
             self.response_dict = {}
             self.error(f'Unexpected error: {str(e)}', 500)
-            print(traceback.print_exc())
+            traceback.print_exc()
         finally:
             if self.status_code >= 400:
                 print(self.response_dict['result'])
@@ -140,13 +146,21 @@ class BaseView:
         else:
             return self
 
-    def user_belong_to_group(self) -> Optional[BaseView]:
-        if self.request.user not in self.dict['group'].user_member_list.all():
-            return self.error(f'You don\'t belong to this group', 403)
+    def user_belong_to_group(self, need_to_be=True) -> Optional[BaseView]:
+        if self.request.user in self.dict['group'].user_member_list.all():
+            if need_to_be:
+                return self
+            else:
+                return self.error(f'You already belong to this group', 403)
         else:
-            return self
+            if need_to_be:
+                return self.error(f'You don\'t belong to this group', 403)
+            else:
+                return self
 
     def model_belong_to_group(self, model_name: str) -> Optional[BaseView]:
-        if self.dict[model_name].group != self.dict['group']:
+        if (hasattr(self.dict[model_name], 'group') and self.dict[model_name].group != self.dict['group']) or (
+                hasattr(self.dict[model_name], 'group_list') and
+                self.dict['group'] not in self.dict[model_name].group_list.all()):
             return self.error(f'{model_name} with id = "{self.dict[model_name].id}" doesn\'t belong to group', 403)
         return self

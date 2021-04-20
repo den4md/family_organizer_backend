@@ -16,8 +16,8 @@ class GroupJoinView(base_view.BaseView):
             return self.error(f'Wrong invite or group already does not exist')
         except ValueError as e:
             return self.error(f'Wrong parameter type: \n{str(e)}')
-        if self.request.user in self.dict['group'].user_member_list.all():
-            return self.error(f'You\'ve already joined to this group')
+        if not self.user_belong_to_group(need_to_be=False):
+            return
 
         self.dict['group'].user_member_list.add(self.request.user)
 
@@ -26,8 +26,9 @@ class GroupJoinView(base_view.BaseView):
         if main_group_chat.chat_message_list.count():
             main_group_chat.chat_user_settings.get(
                 user=self.request.user).number_of_unread_messages = main_group_chat.chat_message_list.count()
+            main_group_chat.chat_user_settings.save()
 
-        for non_main_group_chat in self.dict['group'].chat_list\
+        for non_main_group_chat in self.dict['group'].chat_list \
                 .filter(is_main_group_chat=False, is_group_chat=True, chat_message_list__user_sender=self.request.user):
             non_main_group_chat.user_member_list.add(self.request.user)
 
@@ -35,8 +36,8 @@ class GroupJoinView(base_view.BaseView):
         for user_chat in chat.Chat.objects.filter(is_main_group_chat=False, group=self.dict['group'],
                                                   chat_user_settings__user=self.request.user):
             other_users = other_users.difference(user_chat.user_member_list.all())
-        for user in other_users.iterator():
-            self.dict['group'].chat_list.create().user_member_list.add(user, self.request.user)
+        for other_user in other_users.iterator():
+            self.dict['group'].chat_list.create().user_member_list.add(other_user, self.request.user)
 
         self.response_dict['group_id'] = self.dict['group'].id
         return self

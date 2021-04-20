@@ -7,6 +7,7 @@ from api.views_dir import base_view
 class UserMapPointView(base_view.BaseView):
 
     def handle_post(self) -> Optional[base_view.BaseView]:
+        self.request.user.user_map_point_list.all().delete()
         self.dict['serializer'].save(user=self.request.user)
         return self
 

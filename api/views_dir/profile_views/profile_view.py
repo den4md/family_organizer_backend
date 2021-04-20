@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from django.db import IntegrityError
@@ -34,15 +33,13 @@ class ProfileView(base_view.BaseView):
                 return
         else:
             self.dict['file'] = None
+            self.dict['image_file_thumb'] = None
 
         if self.request.user.image_file == self.dict['file']:
             return self
 
         # noinspection SpellCheckingInspection
         if self.dict['body_json']['image_file_id']:
-            # if not self.dict['file']:
-            #     raise Exception(f'File with id "{self.dict["body_json"]["image_file_id"]}" not found'
-            #                     f'and DB haven\'t raised "ObjectDoesNotExist"')
             if self.dict['file'].user_uploader != self.request.user or self.dict['file'].group:
                 return self.error('This file can\'t be used as profile avatar, '
                                   'because is already used by group/other user')
@@ -50,17 +47,14 @@ class ProfileView(base_view.BaseView):
                 return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
                                   f'. Allowed types: ' +
                                   '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
-            image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
+            self.dict['image_file_thumb'] = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
 
         if self.request.user.image_file:
-            os.remove(settings.FILE_STORAGE + self.request.user.image_file.file_path)
+            base_view.delete_file(self.request.user.image_file.file_path)
             self.request.user.image_file.delete()
-            self.request.user.image_file = None
-            self.request.user.image_file_thumb = None
-        if self.dict['body_json']['image_file_id']:
-            self.request.user.image_file = self.dict['file']
-            # noinspection PyUnboundLocalVariable
-            self.request.user.image_file_thumb = image_file_thumb
+
+        self.request.user.image_file = self.dict['file']
+        self.request.user.image_file_thumb = self.dict['image_file_thumb']
         return self
 
     def no_password_hash(self: base_view.BaseView) -> Optional[base_view.BaseView]:
@@ -91,12 +85,12 @@ class ProfileView(base_view.BaseView):
 
     def handle_delete(self: base_view.BaseView) -> Optional[base_view.BaseView]:
         if self.request.user.check_password(self.request.GET['password_hash']):
-            for group in self.request.user.group_list:
+            for group in self.request.user.group_list.all():
                 self.dict['group'] = group
                 group_leave_view.GroupLeaveView.request_handlers['POST']['specific'](self)
             for user_file in self.request.file_list:
                 if user_file.group:
-                    os.remove(settings.FILE_STORAGE + user_file.path)
+                    base_view.delete_file(user_file.path)
                     user_file.delete()
             self.request.user.delete()
             return self

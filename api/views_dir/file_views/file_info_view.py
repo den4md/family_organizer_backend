@@ -7,17 +7,17 @@ class FileInfoView(base_view.BaseView):
 
     def handle_get(self):
         if 'group_id' in self.request.GET.keys():
-            if not self.request.GET['group_id']:
+            if self.request.GET['group_id'] is None:
                 return self.error('No "group_id" value is granted')
             else:
-                if not self.get_model_by_id(group.Group,
-                                            self.request.GET['group_id']) or not self.user_belong_to_group():
+                if not self.get_model_by_id(group.Group, self.request.GET['group_id']) or \
+                        not self.user_belong_to_group():
                     return
         else:
             self.dict['group'] = None
 
         if self.dict['file'].group != self.dict['group'] or (
-                not self.dict['group'] and self.dict['file'].user_uploader != self.request.user):
+                self.dict['group'] is None and self.dict['file'].user_uploader != self.request.user):
             return self.error(f'File with id "{self.request.GET["file_id"]}" does not exist', 404)
 
         self.response_dict['file_data'] = file_serializers.FileServSerializer(self.dict['file']).data

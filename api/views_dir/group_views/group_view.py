@@ -1,6 +1,5 @@
 import datetime
 import hashlib
-import os
 from typing import Optional
 
 from api.helpers import validate_type, image_helper
@@ -14,28 +13,20 @@ class GroupView(base_view.BaseView):
     url_parameters = ['group_id']
 
     def handle_post(self: base_view.BaseView) -> Optional[base_view.BaseView]:
-
-        if 'file' in self.dict.keys() and self.dict['file']:
-            image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
-        else:
-            self.dict['file'] = None
-            image_file_thumb = None
-
         new_group = self.dict['serializer'].save(user_creator=self.request.user, image_file=self.dict['file'],
-                                                 image_file_thumb=image_file_thumb)
+                                                 image_file_thumb=self.dict['image_file_thumb'])
         if self.dict['file']:
             self.dict['file'].group = new_group
             self.dict['file'].save()
 
-        today_hash = hashlib.md5(str(datetime.datetime.now()).encode('utf8')).hexdigest()
-        new_group.invite_id = today_hash[:16] + str(new_group.id) + today_hash[16:]
+        now_hash = hashlib.md5(str(datetime.datetime.now()).encode('utf8')).hexdigest()
+        new_group.invite_id = now_hash[:16] + str(new_group.id) + now_hash[16:]
 
         new_group.user_member_list.add(self.request.user)
 
-        lonely_group_chat = chat.Chat(group=new_group, is_main_group_chat=True, is_group_chat=True)
-        lonely_group_chat.save()
-        lonely_group_chat.user_member_list.add(self.request.user)
-        lonely_group_chat.save()
+        main_group_chat = chat.Chat(group=new_group, is_main_group_chat=True, is_group_chat=True)
+        main_group_chat.save()
+        main_group_chat.user_member_list.add(self.request.user)
 
         new_group.save()
 
@@ -49,28 +40,34 @@ class GroupView(base_view.BaseView):
         if not validate_type.validate_type(self.dict['body_json']['image_file_id'], int):
             return self.error(f'Wrong type of "image_file_id". Expected - "int", '
                               f'got - "{type(self.dict["body_json"]["image_file_id"])}"')
-        if self.dict['body_json']['image_file_id']:
+        if self.dict['body_json']['image_file_id'] is not None:
             if not self.get_model_by_id(file.File, self.dict['body_json']['image_file_id']):
                 return
         else:
             self.dict['file'] = None
-            return self
-        if self.dict['file'].extension not in settings.IMAGE_TYPES:
-            return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
-                              f'. Allowed types: ' +
-                              '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
-        if self.request.method == 'POST' and (
-                self.dict['file'].group or self.request.user != self.dict['file'].user_uploader):
-            return self.error(f'This file can\'t be used as group avatar, '
-                              f'because is already used by other group/other user')
+            self.dict['image_file_thumb'] = None
 
-        if self.request.method == 'PUT' and \
-                ((self.dict['file'].group and self.dict['file'].group != self.dict['group']) or
-                 ((not self.dict['file'].group) and self.dict['file'].user_uploader != self.request.user)):
-            return self.error(f'This file can\'t be used as group avatar, '
-                              f'because is already used by other group/other user')
-        if self.dict['file'] == self.request.user.image_file:
-            return self.error(f'Can\'t use same image for profile and group avatars at one time')
+        if self.request.method == 'PUT' and self.dict['group'].image_file == self.dict['file']:
+            return self
+
+        if self.dict['body_json']['image_file_id'] is not None:
+            if self.dict['file'].extension not in settings.IMAGE_TYPES:
+                return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
+                                  f'. Allowed types: ' +
+                                  '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
+            if self.request.method == 'POST' and (
+                    self.dict['file'].group or self.request.user != self.dict['file'].user_uploader):
+                return self.error(f'This file can\'t be used as group avatar, '
+                                  f'because is already used by other group/other user')
+
+            if self.request.method == 'PUT' and \
+                    ((self.dict['file'].group is not None and self.dict['file'].group != self.dict['group']) or
+                     (self.dict['file'].group is None and self.dict['file'].user_uploader != self.request.user)):
+                return self.error(f'This file can\'t be used as group avatar, '
+                                  f'because is already used by other group/other user')
+            if self.dict['file'] == self.request.user.image_file:
+                return self.error(f'Can\'t use same image for profile and group avatars at one time')
+            self.dict['image_file_thumb'] = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
         return self
 
     # noinspection PyUnresolvedReferences
@@ -97,16 +94,15 @@ class GroupView(base_view.BaseView):
         if 'file' in self.dict.keys():
             if self.dict['group'].image_file != self.dict['file']:
                 if self.dict['group'].image_file:
-                    os.remove(settings.FILE_STORAGE + self.dict['group'].image_file.file_path)
+                    base_view.delete_file(self.dict['group'].image_file.file_path)
                     self.dict['group'].image_file.delete()
-                    self.dict['group'].image_file = None
-                    self.dict['group'].image_file_thumb = None
+
                 if self.dict['file']:
-                    self.dict['group'].image_file = self.dict['file']
-                    self.dict['group'].image_file_thumb = image_helper.make_thumbnail_base64_str(
-                        self.dict['file'].file_path)
                     self.dict['file'].group = self.dict['group']
                     self.dict['file'].save()
+
+                self.dict['group'].image_file = self.dict['file']
+                self.dict['group'].image_file_thumb = self.dict['image_file_thumb']
 
         self.dict['group'].save()
         return self

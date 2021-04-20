@@ -12,33 +12,33 @@ class MapPointView(base_view.BaseView):
 
     def process_image_file(self) -> Optional[base_view.BaseView]:
         if 'image_file_id' not in self.dict['body_json'].keys():
+            self.dict['file'] = None
+            self.dict['image_file_thumb'] = None
             return self
         if not validate_type.validate_type(self.dict['body_json']['image_file_id'], int):
             return self.error(f'Wrong type of "image_file_id". Expected - "int", '
                               f'got - "{type(self.dict["body_json"]["image_file_id"])}"')
-        if self.dict['body_json']['image_file_id']:
-            if not self.get_model_by_id(file.File, self.dict['body_json']['image_file_id']):
+        if self.dict['body_json']['image_file_id'] is not None:
+            if not self.get_model_by_id(file.File, self.dict['body_json']['image_file_id']) or \
+                    not self.model_belong_to_group('file'):
                 return
+            if self.dict['group'].image_file == self.dict['file']:
+                return self.error(f'This image can\'t be user because it\'s group avatar')
         else:
             self.dict['file'] = None
+            self.dict['image_file_thumb'] = None
             return self
         if self.dict['file'].extension not in settings.IMAGE_TYPES:
             return self.error(f'Wrong type of image ("{self.dict["file"].extension}")'
                               f'. Allowed types: ' +
                               '"' + '", "'.join(settings.IMAGE_TYPES) + '"')
-        if not (self.dict['file'].group and self.dict['file'].group == self.dict['group']):
-            return self.error(f'This file can\'t be used because it\'s already used by other group/other user')
+        self.dict['image_file_thumb'] = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
         return self
 
     def handle_post(self) -> Optional[base_view.BaseView]:
-        if 'file' in self.dict.keys() and self.dict['file']:
-            image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
-        else:
-            self.dict['file'] = None
-            image_file_thumb = None
-
         _map_point = self.dict['serializer'].save(user_creator=self.request.user, group=self.dict['group'],
-                                                  image_file=self.dict['file'], image_file_thumb=image_file_thumb)
+                                                  image_file=self.dict['file'],
+                                                  image_file_thumb=self.dict['image_file_thumb'])
         self.response_dict['map_point_id'] = _map_point.id
         return self
 
@@ -68,15 +68,9 @@ class MapPointView(base_view.BaseView):
             .request_handlers['GET']['specific'](self)
 
     def handle_put(self) -> Optional[base_view.BaseView]:
-        if 'file' in self.dict.keys() and self.dict['file']:
-            image_file_thumb = image_helper.make_thumbnail_base64_str(self.dict['file'].file_path)
-        else:
-            self.dict['file'] = None
-            image_file_thumb = None
-
         if 'image_file_id' in self.dict['body_json'].keys():
             self.dict['map_point'].image_file = self.dict['file']
-            self.dict['map_point'].image_file_thumb = image_file_thumb
+            self.dict['map_point'].image_file_thumb = self.dict['image_file_thumb']
         self.dict['map_point'].save()
 
         return self

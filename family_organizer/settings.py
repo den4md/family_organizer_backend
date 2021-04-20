@@ -9,12 +9,7 @@ SECRET_KEY = '8)3y%w6alvr*=thf(ws3w34^+z*k&_jzn(rs7k3t+$cks1ltu8'
 
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    '94.243.97.68',  # For dynamic IP this need to be changed
-    '192.168.1.20',
-    '127.0.0.1',
-    '0.0.0.0',
-]
+ALLOWED_HOSTS = ['*']
 
 
 # User-defined settings

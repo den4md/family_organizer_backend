@@ -16,14 +16,14 @@ class EventListView(base_view.BaseView):
                 start_date = datetime.datetime.strptime(self.request.GET['start_date'], '%Y-%m-%d')
                 event_list = event_list.filter(event_datetime__gte=start_date)
             except ValueError as e:
-                print(f'Can\'t parse date "{self.request.GET["start_date"]}";\n{str(e)}')
+                return self.error(f'Can\'t parse date "{self.request.GET["start_date"]}";\n{str(e)}')
         if 'end_date' in self.request.GET.keys() and self.request.GET['end_date']:
             try:
                 end_date = datetime.datetime.strptime(self.request.GET['end_date'], '%Y-%m-%d') + \
                            datetime.timedelta(days=1)
                 event_list = event_list.filter(event_datetime__lte=end_date)
             except ValueError as e:
-                print(f'Can\'t parse date "{self.request.GET["end_date"]}";\n{str(e)}')
+                return self.error(f'Can\'t parse date "{self.request.GET["end_date"]}";\n{str(e)}')
         self.response_dict['event_list'] = event_serializers.EventServMiniSerializer(event_list,
                                                                                      many=True).data
         return self

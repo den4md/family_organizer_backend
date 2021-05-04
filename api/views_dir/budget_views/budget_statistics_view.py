@@ -30,7 +30,7 @@ class BudgetStatisticsView(base_view.BaseView):
         filter_method()
         return self
 
-    def handle_get(self) -> Optional[base_view.BaseView]:
+    def handle_post(self) -> Optional[base_view.BaseView]:
         self.dict['budget_item_list'] = self.dict['group'].budget_item_list
 
         if 'all_budget_categories' not in self.dict['body_json'].keys() or \
@@ -70,17 +70,19 @@ class BudgetStatisticsView(base_view.BaseView):
 
         return self
 
-    def chain_get(self):
+    def chain_post(self):
         self.authorize() \
             .require_url_parameters(self.url_parameters) \
             .get_model_by_id(group.Group, self.request.GET['group_id']) \
             .user_belong_to_group() \
             .deserialize_json_body() \
-            .request_handlers['GET']['specific'](self)
+            .request_handlers['POST']['specific'](self)
+
+    # POST instead of GET cause FUCKOFF stupid conservative opponents of flexibility and openability
 
     request_handlers = {
-        'GET': {
-            'chain': chain_get,
-            'specific': handle_get
+        'POST': {
+            'chain': chain_post,
+            'specific': handle_post
         }
     }

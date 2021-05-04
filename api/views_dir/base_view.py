@@ -15,7 +15,7 @@ from family_organizer import settings
 
 
 def make_float(obj):
-    return 0 if obj is None else float(obj)
+    return 0. if obj is None else float(obj)
 
 
 def delete_file(file_path):

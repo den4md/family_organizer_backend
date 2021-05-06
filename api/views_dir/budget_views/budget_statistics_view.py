@@ -31,7 +31,7 @@ class BudgetStatisticsView(base_view.BaseView):
         return self
 
     def handle_post(self) -> Optional[base_view.BaseView]:
-        self.dict['budget_item_list'] = self.dict['group'].budget_item_list
+        self.dict['budget_item_list'] = self.dict['group'].budget_item_list.all()
 
         if 'all_budget_categories' not in self.dict['body_json'].keys() or \
                 not self.dict['body_json']['all_budget_categories']:

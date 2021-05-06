@@ -31,9 +31,13 @@ class GroupJoinView(base_view.BaseView):
         for non_main_group_chat in self.dict['group'].chat_list \
                 .filter(is_main_group_chat=False, is_group_chat=True, chat_message_list__user_sender=self.request.user):
             non_main_group_chat.user_member_list.add(self.request.user)
+            if non_main_group_chat.chat_message_list.count():
+                non_main_group_chat.chat_user_settings.get(
+                    user=self.request.user).number_of_unread_messages = non_main_group_chat.chat_message_list.count()
+                non_main_group_chat.chat_user_settings.save()
 
         other_users = self.dict['group'].user_member_list.exclude(id=self.request.user.id)
-        for user_chat in chat.Chat.objects.filter(is_main_group_chat=False, group=self.dict['group'],
+        for user_chat in chat.Chat.objects.filter(is_group_chat=False, group=self.dict['group'],
                                                   chat_user_settings__user=self.request.user):
             other_users = other_users.difference(user_chat.user_member_list.all())
         for other_user in other_users.iterator():

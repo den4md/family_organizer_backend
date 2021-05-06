@@ -12,3 +12,4 @@ class ChatMessage(models.Model):
                                     on_delete=models.SET_NULL, blank=True)
     send_datetime = models.DateTimeField(default=datetime.datetime.now)
     chat = models.ForeignKey(to='Chat', on_delete=models.CASCADE, related_name='chat_message_list')
+    is_read = models.BooleanField(default=False)
